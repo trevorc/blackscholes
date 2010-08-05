@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import collections
 from math import log
 import sys
