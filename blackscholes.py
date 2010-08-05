@@ -1,45 +1,56 @@
 from math import exp, log, sqrt
-from scipy.optimize import leastsq
 from scipy.stats import norm
 import numpy
-import operator
 import pickle
 
-cdf = norm.cdf
+import stats
 
-def black_scholes(k, s, t, put, r, v):
-    d1 = (log(s/k) + (r + v**2 / 2) * t) / (v * sqrt(t))
-    d2 = d1 - v * sqrt(t)
-    call = s * cdf(d1) - k * exp(-r*t) * cdf(d2)
+cdf = stats.cdf
 
-    if put:
-        return k * exp(-r*t) - s + call
-    return call
+def black_scholes(x, b):
+    y = numpy.zeros(len(x))
+    r, v = b
 
-def black_scholes_quote(quote, r, v):
-    t = quote.days_to_exp
-    k = quote.strike
-    s = quote.spot
-    put = quote.put
+    for i in xrange(len(x)):
+        k, s, t, put = x[i]
 
-    d1 = (log(s/k) + (r + v**2 / 2) * t) / (v * sqrt(t))
-    d2 = d1 - v * sqrt(t)
-    call = s * cdf(d1) - k * exp(-r*t) * cdf(d2)
+        sqrt_t = sqrt(t)
+        k_e_r_t = k * exp(-r*t)
 
-    if put:
-        return k * exp(-r*t) - s + call
-    return call
+        d1 = (log(s/k) + (r + v**2 / 2) * t) / (v * sqrt_t)
+        d2 = d1 - v * sqrt_t
+        call = s * cdf(d1) - k_e_r_t * cdf(d2)
 
-def residuals(estimated_params, actual_prices, quotes):
-    return map(lambda price, quote:
-               price - black_scholes_quote(quote, *estimated_params),
-               actual_prices, quotes)
+        if put:
+            y[i] = k_e_r_t - s + call
+        else:
+            y[i] = call
 
-def compute_implied(quotes, r0=log(1.0525), v0=0.1):
-    p0 = [r0, v0]
-    option_prices = [(quote.bid + quote.ask) / 2 for quote in quotes]
-    return leastsq(residuals, p0, args=(option_prices, quotes))
+    return y
+
+def observations(quotes):
+    y = numpy.array([(quote.bid + quote.ask) / 2 for quote in quotes])
+    x = numpy.zeros((len(quotes), 4))
+    for q in xrange(len(quotes)):
+        x[q] = quotes[q].strike, quotes[q].spot, \
+               quotes[q].days_to_exp, quotes[q].put
+
+    return y, x
+
+def compute_implied(y, x, r0=log(1.0525), v0=0.1):
+    b0 = numpy.array([r0, v0])
+    return stats.lm(black_scholes, y, x, b0)
+
+def main():
+    import sys
+
+    quotes = pickle.load(sys.stdin)
+    y, x = observations(quotes)
+    soln = compute_implied(y, x)[0]
+    errors = stats.errors(black_scholes, y, x, soln)
+
+    print 'b:   ', soln
+    print 'err: ', errors
 
 if __name__ == '__main__':
-    import sys
-    print compute_implied(pickle.load(sys.stdin))
+    main()
