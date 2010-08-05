@@ -3,7 +3,7 @@ import operator
 import pickle
 import re
 
-from option import OptionQuote
+from blackscholes import OptionQuote
 
 option_symbol_re = re.compile(r'(?P<exp>\d+ \w+) (?P<strike>[^ ]+) \('
                               r'(?P<sym>[^0-9]+\d\d(?P<day>\d\d)[^)]+)\)')
@@ -50,7 +50,9 @@ def read_cboe_data(f):
                           (under_bid + under_ask) / 2.0, days_to_exp,
                           float(put_bid), float(put_ask))
 
-
-if __name__ == '__main__':
+def main():
     import sys
     pickle.dump(list(read_cboe_data(sys.stdin)), sys.stdout)
+
+if __name__ == '__main__':
+    main()

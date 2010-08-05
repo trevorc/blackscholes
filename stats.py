@@ -1,16 +1,7 @@
 import collections
-from ctypes import c_double, cdll
 import math
 
 import scipy.optimize
-
-libm = cdll.LoadLibrary('libm.so.6')
-libm.erfc.restype = c_double
-libm_erfc = libm.erfc
-sqrt_2 = math.sqrt(2)
-
-def cdf(d):
-    return libm_erfc(c_double(-d/sqrt_2)) / 2.0
 
 Errors = collections.namedtuple('Errors', ['rss', 'r_squared', 'rmse'])
 

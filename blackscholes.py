@@ -1,30 +1,23 @@
-from math import exp, log, sqrt
-from scipy.stats import norm
+import collections
+from math import log
+import sys
 import numpy
 import pickle
 
+from _blackscholes import black_scholes
 import stats
 
-cdf = stats.cdf
+OptionQuote = collections.namedtuple('OptionQuote', [
+    'symbol', 'underlying', 'put', 'strike', 'spot', 'days_to_exp',
+    'bid', 'ask'])
 
-def black_scholes(x, b):
+def black_scholes_arr(x, b):
     y = numpy.zeros(len(x))
-    r, v = b
+    r, vol = b
 
     for i in xrange(len(x)):
         k, s, t, put = x[i]
-
-        sqrt_t = sqrt(t)
-        k_e_r_t = k * exp(-r*t)
-
-        d1 = (log(s/k) + (r + v**2 / 2) * t) / (v * sqrt_t)
-        d2 = d1 - v * sqrt_t
-        call = s * cdf(d1) - k_e_r_t * cdf(d2)
-
-        if put:
-            y[i] = k_e_r_t - s + call
-        else:
-            y[i] = call
+        y[i] = black_scholes(k, s, t, bool(put), r, vol)
 
     return y
 
@@ -37,20 +30,17 @@ def observations(quotes):
 
     return y, x
 
-def compute_implied(y, x, r0=log(1.0525), v0=0.1):
-    b0 = numpy.array([r0, v0])
-    return stats.lm(black_scholes, y, x, b0)
-
 def main():
-    import sys
-
     quotes = pickle.load(sys.stdin)
     y, x = observations(quotes)
-    soln = compute_implied(y, x)[0]
-    errors = stats.errors(black_scholes, y, x, soln)
+    b0 = numpy.array([log(1.0525), 0.1])
+    soln = stats.lm(black_scholes_arr, y, x, b0)[0]
+    errors = stats.errors(black_scholes_arr, y, x, soln)
 
-    print 'b:   ', soln
-    print 'err: ', errors
+    r, vol = soln
+    print 'r:  ', r
+    print 'vol:', vol
+    print 'err:', errors
 
 if __name__ == '__main__':
     main()
