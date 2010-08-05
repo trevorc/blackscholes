@@ -4,8 +4,8 @@ cdef extern from 'math.h':
     double log(double)
     double sqrt(double)
 
-def cdf(double d):
-    return erfc(-d/sqrt(2)) / 2.0
+cdef double cdf(double x):
+    return erfc(-x/sqrt(2)) / 2
 
 def black_scholes(double k, double s, double t, bool put, double r,
                   double vol):

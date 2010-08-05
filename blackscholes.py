@@ -34,7 +34,7 @@ def observations(quotes):
 
 def main():
     quotes = pickle.load(sys.stdin)
-    y, x = observations(quotes)
+    y, x = observations(filter(lambda q: q.ask > 0, quotes))
     b0 = numpy.array([log(1.0525), 0.1])
     soln = stats.lm(black_scholes_arr, y, x, b0)[0]
     errors = stats.errors(black_scholes_arr, y, x, soln)
