@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
-import operator
-import pickle
 import re
-
-from blackscholes import OptionQuote
 
 option_symbol_re = re.compile(r'(?P<exp>\d+ \w+) (?P<strike>[^ ]+) \('
                               r'(?P<sym>[^0-9]+\d\d(?P<day>\d\d)[^)]+)\)')
@@ -43,18 +39,20 @@ def read_cboe_data(f):
             continue
         days_to_exp = (expiration - quotetime).days / 365.0
 
-        yield OptionQuote(calls_symbol_m.group('sym'), underlying,
-                          False, float(calls_symbol_m.group('strike')),
-                          (under_bid + under_ask) / 2.0, days_to_exp,
-                          float(call_bid), float(call_ask))
-        yield OptionQuote(puts_symbol_m.group('sym'), underlying,
-                          True, float(puts_symbol_m.group('strike')),
-                          (under_bid + under_ask) / 2.0, days_to_exp,
-                          float(put_bid), float(put_ask))
+        yield (calls_symbol_m.group('sym'), underlying, 0,
+               float(calls_symbol_m.group('strike')),
+               (under_bid + under_ask) / 2.0, days_to_exp,
+               (float(call_bid) + float(call_ask)) / 2)
+        yield (puts_symbol_m.group('sym'), underlying, 1,
+               float(puts_symbol_m.group('strike')),
+               (under_bid + under_ask) / 2.0, days_to_exp,
+               (float(put_bid) + float(put_ask)) / 2)
 
 def main():
     import sys
-    pickle.dump(list(read_cboe_data(sys.stdin)), sys.stdout)
+
+    for quote in read_cboe_data(sys.stdin):
+        sys.stdout.write('%s\n' % str.join(',', map(str, quote)))
 
 if __name__ == '__main__':
     main()
